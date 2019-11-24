@@ -119,7 +119,7 @@ namespace aoc {
                 }
                 catch (aoc_exception&) {
                     os << "ERROR - could not parse input" << std::endl;
-                    return 255;
+                    continue;
                 }
 
                 std::stringstream errors;
