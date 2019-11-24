@@ -17,6 +17,7 @@
 #include <string>
 #include <cstring>
 #include <type_traits>
+#include <cstdlib>
 
 namespace aoc
 {
@@ -31,7 +32,10 @@ namespace aoc
             vec2() noexcept : x(), y() {};
             vec2(scalar_type x, scalar_type y) noexcept : x(x), y(y) {};
             vec2(const vec2& other) noexcept { std::memcpy(this, &other, sizeof(vec2)); }
-            vec2& operator=(const vec2& other) { std::memcpy(this, &other, sizeof(vec2)); return *this; }
+            vec2& operator=(const vec2& other) noexcept { std::memcpy(this, &other, sizeof(vec2)); return *this; }
+            friend bool operator==(const vec2& lhs, const vec2& rhs) noexcept { return std::equal(lhs.data.begin(), lhs.data.end(), rhs.data.begin(), rhs.data.end()); }
+            friend bool operator!=(const vec2& lhs, const vec2& rhs) noexcept { return !(lhs == rhs); }
+            friend vec2 operator+(const vec2& lhs, const vec2& rhs) noexcept { return { lhs.x + rhs.x, lhs.y + rhs.y }; }
 
             scalar_type& operator[](std::size_t i) { return data[i]; }
             const scalar_type& operator[](std::size_t i) const { return data[i]; }
@@ -47,6 +51,35 @@ namespace aoc
             std::size_t id;
             vec2<std::intmax_t> start;
             vec2<std::intmax_t> size;
+
+            struct iterator {
+                using difference_type = std::ptrdiff_t;
+                using value_type = vec2<std::intmax_t>;
+                using pointer = const value_type*;
+                using reference = const value_type&;
+                using iterator_category = std::forward_iterator_tag;
+
+                std::reference_wrapper<const rect_t> rect_;
+                vec2<std::intmax_t> idx_;
+
+                iterator& operator++() noexcept {
+                    auto remquo = std::div(idx_.x + 1 - rect_.get().start.x, rect_.get().size.x);
+                    idx_.x = remquo.rem + rect_.get().start.x;
+                    idx_.y += remquo.quot;
+                    return *this;
+                }
+                iterator operator++(int) noexcept { auto cpy = *this; ++(*this); return cpy; }
+                friend bool operator==(const iterator& lhs, const iterator& rhs) noexcept { return lhs.idx_ == rhs.idx_; }
+                friend bool operator!=(const iterator& lhs, const iterator& rhs) noexcept { return !(lhs == rhs); }
+                reference operator*() const noexcept { return idx_; }
+                pointer operator->() const noexcept { return &idx_; }
+            };
+            friend struct iterator;
+
+            iterator begin() const noexcept { return { *this, start }; }
+            iterator end() const noexcept {
+                return { *this, {start.x, start.y + size.y} };
+            }
         };
 
         using input_t = std::vector<rect_t>;
@@ -109,11 +142,9 @@ namespace aoc
                 board.resize(max);
             }
 
-            for (const rect_t& r : in) {
-                for (auto y = r.start.y; y < r.start.y + r.size.y; ++y)
-                    for (auto x = r.start.x; x < r.start.x + r.size.x; ++x)
-                        ++board[{x,y}];
-            }
+            for (const rect_t& r : in)
+                for (const auto& idx : r)
+                    ++board[idx];
 
             return std::count_if(board.begin(), board.end(), [](auto n) { return n > 1; });
         }
@@ -132,20 +163,19 @@ namespace aoc
                 board.resize(max);
             }
 
-            for (const rect_t& r : in) {
-                for (auto y = r.start.y; y < r.start.y + r.size.y; ++y)
-                    for (auto x = r.start.x; x < r.start.x + r.size.x; ++x)
-                        ++board[{x,y}];
-            }
+            for (const rect_t& r : in)
+                for (const auto& idx : r)
+                    ++board[idx];
 
             for (const rect_t& r : in) {
-                for (auto y = r.start.y; y < r.start.y + r.size.y; ++y) {
-                    for (auto x = r.start.x; x < r.start.x + r.size.x; ++x) {
-                        if (board[{x,y}] != 1) goto next_iter;
+                bool found = true;
+                for (const auto& idx : r) {
+                    if (board[idx] != 1) {
+                        found = false;
+                        break;
                     }
                 }
-                return r.id;
-                next_iter: continue;
+                if (found) return r.id;
             }
             return std::nullopt;
         }
