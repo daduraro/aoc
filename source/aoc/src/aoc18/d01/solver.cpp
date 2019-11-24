@@ -10,25 +10,14 @@
 #include <algorithm>
 #include <limits>
 #include <cassert>
+#include <memory>
 
 namespace aoc
 {
     namespace {
+        constexpr std::size_t YEAR = 2018;
+        constexpr std::size_t DAY = 01;
         using input_t = std::vector<std::intmax_t>;
-
-        auto parse(std::istream& is) -> input_t
-        {
-            using is_it_t = std::istream_iterator<std::intmax_t>;
-            std::vector<std::intmax_t> vec;
-            std::copy(is_it_t(is), is_it_t(), std::back_inserter(vec));
-            if (vec.empty()) throw parse_exception{};
-            return vec;
-        }
-
-        void solve_A(std::ostream& os, const input_t& input)
-        {
-            os << "partA: " << std::accumulate(std::begin(input), std::end(input), (std::intmax_t)0) << std::endl;
-        }
 
         std::optional<intmax_t> first_repetition(const std::vector<std::intmax_t>& fs) noexcept
         {
@@ -115,27 +104,41 @@ namespace aoc
             return k != not_found ? std::optional(result) : std::nullopt;
         }
 
-        void solve_B(std::ostream& os, const input_t& input)
-        {
-            auto res = result_B(input);
-            os << "partB: ";
-            if (res) os << *res;
-            else os << "N/A";
-            os << std::endl;
-        }
     }
 
     template<>
-    void solver<2018, 1>::operator()(std::istream& is, ddr::utils::optional_ref<std::ostream> partA, ddr::utils::optional_ref<std::ostream> partB) const
+    void solver<YEAR, DAY>::solveA(std::ostream& os, const void* in) const
     {
-        auto input = parse(is);
-        if (partA) {
-            std::ostream& osA = *partA;
-            solve_A(osA, input);
-        }
-        if (partB) {
-            std::ostream& osB = *partB;
-            solve_B(osB, input);
-        }
+        const input_t& input = *reinterpret_cast<const input_t*>(in);
+        os << std::accumulate(std::begin(input), std::end(input), (std::intmax_t)0);
     }
+
+    template<>
+    void solver<YEAR, DAY>::solveB(std::ostream& os, const void* in) const
+    {
+        const input_t& input = *reinterpret_cast<const input_t*>(in);
+        auto res = result_B(input);
+        if (res) os << *res;
+        else os << "N/A";
+    }
+
+    template<>
+    void* solver<YEAR, DAY>::parse(std::istream& is) const
+    {
+        std::unique_ptr<input_t> ptr{ new input_t{} };
+
+        input_t& vec = *ptr;
+        using is_it_t = std::istream_iterator<std::intmax_t>;
+        std::copy(is_it_t(is), is_it_t(), std::back_inserter(vec));
+        if (vec.empty()) throw parse_exception{};
+
+        return ptr.release();
+    }
+
+    template<>
+    void solver<YEAR, DAY>::cleanup(void* ptr) const noexcept
+    {
+        delete reinterpret_cast<input_t*>(ptr);
+    }
+
 }
