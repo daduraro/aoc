@@ -1,3 +1,4 @@
+
 [submodule "input"]
 	path = input
 	url = https://github.com/daduraro/aoc-data.git
