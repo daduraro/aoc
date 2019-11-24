@@ -39,7 +39,7 @@ namespace aoc {
             str = str.substr(0, str.find('\n')); // read until \n
 
             if (groundtruth != str) {
-                os << "Expected '" << groundtruth << "' but found '" << str << "'\n";
+                os << "Expected '" << groundtruth << "' but found '" << str << "'";
                 return false;
             }
             return true;
@@ -129,12 +129,15 @@ namespace aoc {
                     os << "partA: ";
                     os << std::setw(10) << std::right;
                     if (problem.compareA) {
+                        std::stringstream error_buff;
                         std::stringstream buffer;
                         solver.solveA(buffer, input.get());
-                        if (equal(problem.compareA->stream, buffer.str(), errors)) {
+                        if (equal(problem.compareA->stream, buffer.str(), error_buff)) {
                             os << "[PASSED]";
                         } else {
                             os << "[FAILED]";
+                            errors << "FAILED while solving partA: " << error_buff.rdbuf() << "\n";
+                            errors_happened = true;
                         }
                     } else {
                         solver.solveA(os, input.get());
@@ -152,11 +155,14 @@ namespace aoc {
                     os << std::setw(10) << std::right;
                     if (problem.compareB) {
                         std::stringstream buffer;
+                        std::stringstream error_buff;
                         solver.solveB(buffer, input.get());
-                        if (equal(problem.compareB->stream, buffer.str(), errors)) {
+                        if (equal(problem.compareB->stream, buffer.str(), error_buff)) {
                             os << "[PASSED]";
                         } else {
                             os << "[FAILED]";
+                            errors << "FAILED while solving partB: " << error_buff.rdbuf() << "\n";
+                            errors_happened = true;
                         }
                     } else {
                         solver.solveB(os, input.get());
@@ -169,7 +175,7 @@ namespace aoc {
                     errors_happened = true;
                 }
                 os << "\n";
-                if (errors_happened) os << errors.rdbuf();
+                if (errors_happened) os << errors.rdbuf() << "\n";
                 os << std::flush;
             }
             return 0;
