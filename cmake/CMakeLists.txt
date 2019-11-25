@@ -1,7 +1,4 @@
-﻿# configure project
-project(aoc LANGUAGES CXX VERSION 0.1)
-
-# configure directories
+﻿# configure directories
 get_filename_component(ROOT_DIR ".." ABSOLUTE)
 set(SOURCE_DIR ${ROOT_DIR}/source)
 set(EXTERN_DIR ${ROOT_DIR}/extern)
