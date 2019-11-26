@@ -65,7 +65,7 @@ namespace aoc {
 
             // load all *.in, *.outA, *.outB files inside, e.g., "aoc18/d01"
             fpath /= "aoc";
-            fpath += std::to_string(year % 100);
+            fpath += std::to_string(year);
             fpath /= "d";
             std::stringstream ss;
             ss << std::fixed << std::setfill('0') << std::setw(2) << std::right << day; // std::format...

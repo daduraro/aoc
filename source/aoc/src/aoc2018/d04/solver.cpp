@@ -1,5 +1,6 @@
 #include "aoc/solver.h"
 #include "aoc/error.h"
+#include "version.h"
 
 #include "ddr/porting.h"
 
@@ -25,9 +26,6 @@
 namespace aoc
 {
     namespace {
-        constexpr std::size_t YEAR = 2018;
-        constexpr std::size_t DAY = 04;
-
         class date_t {
         public:
             // regular fake dates, where months have 31 days, and a year always have 12 months
@@ -67,7 +65,7 @@ namespace aoc
 
             using guard_info_t = std::tuple<id_t, std::size_t, std::size_t, std::size_t>;
             std::vector<guard_info_t> guards;
-            for (auto first = in.begin(); first != in.end();) 
+            for (auto first = in.begin(); first != in.end();)
             {
                 auto last = std::next(std::adjacent_find(first, std::prev(in.end()), [](const auto& lhs, const auto& rhs){ return std::get<id_t>(lhs) != std::get<id_t>(rhs); }));
 
@@ -110,21 +108,21 @@ namespace aoc
     }
 
     template<>
-    void solver<YEAR, DAY>::solveA(std::ostream& os, const void* type_erased_in) const
+    void solver<AOC_YEAR, AOC_DAY>::solveA(std::ostream& os, const void* type_erased_in) const
     {
         const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
         os << result(in, std::true_type{});
     }
 
     template<>
-    void solver<YEAR, DAY>::solveB(std::ostream& os, const void* type_erased_in) const
+    void solver<AOC_YEAR, AOC_DAY>::solveB(std::ostream& os, const void* type_erased_in) const
     {
         const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
         os << result(in, std::false_type{});
     }
 
     template<>
-    void* solver<YEAR, DAY>::parse(std::istream& is) const
+    void* solver<AOC_YEAR, AOC_DAY>::parse(std::istream& is) const
     {
         constexpr std::size_t NO_ID = std::numeric_limits<std::size_t>::max();
 
@@ -205,7 +203,7 @@ namespace aoc
     }
 
     template<>
-    void solver<YEAR, DAY>::cleanup(void* ptr) const noexcept
+    void solver<AOC_YEAR, AOC_DAY>::cleanup(void* ptr) const noexcept
     {
         delete reinterpret_cast<input_t*>(ptr);
     }

@@ -1,6 +1,8 @@
 #include "aoc/solver.h"
 #include "aoc/error.h"
 
+#include "version.h"
+
 #include <iostream>
 #include <cstddef>
 #include <cstdint>
@@ -22,9 +24,6 @@
 namespace aoc
 {
     namespace {
-        constexpr std::size_t YEAR = 2018;
-        constexpr std::size_t DAY = 03;
-
         template<typename T = std::intmax_t>
         struct vec2 {
             static_assert(std::is_trivial_v<T>, "vec2 can only hold trivial types");
@@ -94,14 +93,18 @@ namespace aoc
             board_t(index_type size) noexcept(noexcept(Cell{}))
             {
                 base_type& vec = static_cast<base_type&>(*this);
-                vec.resize(size[0] * size[1]);
+                assert(size[0] > 0);
+                assert(size[1] > 0);
+                vec.resize(std::size_t(size[0] * size[1]));
                 bounds_ = size;
             }
 
             void resize(const index_type& size) {
                 base_type& vec = static_cast<base_type&>(*this);
                 vec.clear();
-                vec.resize(size[0] * size[1]);
+                assert(size[0] > 0);
+                assert(size[1] > 0);
+                vec.resize(std::size_t(size[0] * size[1]));
                 bounds_ = size;
             }
 
@@ -134,7 +137,7 @@ namespace aoc
 
             // resize board to hold all rects
             {
-                vec2 max;
+                vec2<std::intmax_t> max;
                 for (const rect_t& r : in) {
                     max.x = std::max(max.x, r.start.x + r.size.x);
                     max.y = std::max(max.y, r.start.y + r.size.y);
@@ -155,7 +158,7 @@ namespace aoc
 
             // resize board to hold all rects
             {
-                vec2 max;
+                vec2<std::intmax_t> max;
                 for (const rect_t& r : in) {
                     max.x = std::max(max.x, r.start.x + r.size.x);
                     max.y = std::max(max.y, r.start.y + r.size.y);
@@ -182,14 +185,14 @@ namespace aoc
     }
 
     template<>
-    void solver<YEAR, DAY>::solveA(std::ostream& os, const void* type_erased_in) const
+    void solver<AOC_YEAR, AOC_DAY>::solveA(std::ostream& os, const void* type_erased_in) const
     {
         const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
         os << resultA(in);
     }
 
     template<>
-    void solver<YEAR, DAY>::solveB(std::ostream& os, const void* type_erased_in) const
+    void solver<AOC_YEAR, AOC_DAY>::solveB(std::ostream& os, const void* type_erased_in) const
     {
         const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
         auto result = resultB(in);
@@ -198,7 +201,7 @@ namespace aoc
     }
 
     template<>
-    void* solver<YEAR, DAY>::parse(std::istream& is) const
+    void* solver<AOC_YEAR, AOC_DAY>::parse(std::istream& is) const
     {
         if (!is) throw parse_exception{};
 
@@ -241,7 +244,7 @@ namespace aoc
     }
 
     template<>
-    void solver<YEAR, DAY>::cleanup(void* ptr) const noexcept
+    void solver<AOC_YEAR, AOC_DAY>::cleanup(void* ptr) const noexcept
     {
         delete reinterpret_cast<input_t*>(ptr);
     }

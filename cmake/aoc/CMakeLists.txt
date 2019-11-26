@@ -39,20 +39,4 @@ if (MSVC)
     )
 endif()
 
-
-# define new function to create aoc executable for each day
-function(aoc YEAR DAY INCLUDE_DIR)
-    set(EXE_NAME aoc${YEAR}_${DAY})
-    add_executable(${EXE_NAME} ${ARGN})
-    set_target_properties(${EXE_NAME} PROPERTIES
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED 1
-    )
-    target_include_directories(${EXE_NAME}
-    PUBLIC
-        $<BUILD_INTERFACE:${INCLUDE_DIR}>
-    )
-    target_link_libraries(${EXE_NAME} PRIVATE aoc)
-endfunction()
-
-add_subdirectory(aoc18)
+add_subdirectory(problems)

@@ -1,6 +1,8 @@
 #include "aoc/solver.h"
 #include "aoc/error.h"
 
+#include "version.h"
+
 #include <iostream>
 #include <cstddef>
 #include <cstdint>
@@ -15,8 +17,6 @@
 namespace aoc
 {
     namespace {
-        constexpr std::size_t YEAR = 2018;
-        constexpr std::size_t DAY = 01;
         using input_t = std::vector<std::intmax_t>;
 
         std::optional<intmax_t> first_repetition(const std::vector<std::intmax_t>& fs) noexcept
@@ -107,14 +107,14 @@ namespace aoc
     }
 
     template<>
-    void solver<YEAR, DAY>::solveA(std::ostream& os, const void* in) const
+    void solver<AOC_YEAR, AOC_DAY>::solveA(std::ostream& os, const void* in) const
     {
         const input_t& input = *reinterpret_cast<const input_t*>(in);
         os << std::accumulate(std::begin(input), std::end(input), (std::intmax_t)0);
     }
 
     template<>
-    void solver<YEAR, DAY>::solveB(std::ostream& os, const void* in) const
+    void solver<AOC_YEAR, AOC_DAY>::solveB(std::ostream& os, const void* in) const
     {
         const input_t& input = *reinterpret_cast<const input_t*>(in);
         auto res = result_B(input);
@@ -123,7 +123,7 @@ namespace aoc
     }
 
     template<>
-    void* solver<YEAR, DAY>::parse(std::istream& is) const
+    void* solver<AOC_YEAR, AOC_DAY>::parse(std::istream& is) const
     {
         std::unique_ptr<input_t> ptr{ new input_t{} };
 
@@ -136,7 +136,7 @@ namespace aoc
     }
 
     template<>
-    void solver<YEAR, DAY>::cleanup(void* ptr) const noexcept
+    void solver<AOC_YEAR, AOC_DAY>::cleanup(void* ptr) const noexcept
     {
         delete reinterpret_cast<input_t*>(ptr);
     }
