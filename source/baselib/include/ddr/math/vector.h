@@ -17,7 +17,7 @@ namespace ddr::math {
         vec2(const vec2& other) noexcept { std::memcpy(this, &other, sizeof(vec2)); }
         vec2& operator=(const vec2& other) noexcept { std::memcpy(this, &other, sizeof(vec2)); return *this; }
 
-        friend constexpr bool operator==(const vec2& lhs, const vec2& rhs) noexcept { return std::equal(lhs.data.begin(), lhs.data.end(), rhs.data.begin(), rhs.data.end()); }
+        friend constexpr bool operator==(const vec2& lhs, const vec2& rhs) noexcept { return (lhs.x == rhs.x) && (lhs.y == rhs.y); /*return std::equal(lhs.data.begin(), lhs.data.end(), rhs.data.begin(), rhs.data.end());*/ }
         friend constexpr bool operator!=(const vec2& lhs, const vec2& rhs) noexcept { return !(lhs == rhs); }
         friend constexpr vec2 operator+(const vec2& lhs, const vec2& rhs) noexcept { return { lhs.x + rhs.x, lhs.y + rhs.y }; }
         friend constexpr vec2 operator-(const vec2& lhs, const vec2& rhs) noexcept { return { lhs.x - rhs.x, lhs.y - rhs.y }; }

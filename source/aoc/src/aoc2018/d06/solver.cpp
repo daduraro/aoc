@@ -34,7 +34,7 @@ namespace aoc
             std::transform(in.begin(), in.end(), in.begin(), [min_point](const auto& x){ return x - min_point; });
             auto max_point = std::reduce(std::next(in.begin()), in.end(), *in.begin(), [](const auto& lhs, const auto& rhs) { return max(lhs, rhs); });
             auto size_board = max_point + ivec2{1,1};
-            
+
             // Bounding box now is { (0,0), max_point }.
             grid2<std::optional<std::size_t>> closest_point{ size_board };
 
@@ -87,30 +87,81 @@ namespace aoc
             return (result == 0) ? std::nullopt : std::optional{result};
         }
 
-        std::size_t resultB(input_t in, std::size_t max_dist = 10000) {
-        //     // This problem can be thought in terms of the gradient of the sum of the distances.
-        //     // In particular, given points P = { in[0], ..., in[N-1] }, there is a squared
-        //     // region that leaves half the points above and half the points below, and
-        //     // half the points to the left and half to the right. 
-        //     // This is the region sum of distances.
-        //     // Considering just the x coordinate, for each movement outside
-        //     // this inner region, the total sum of distances increases by the imbalance
-        //     // in points that are to the left w.r.t. the points to the right.
-        //     //
-        //     // For example, imagine points whose x are 0, 1, 5, 8.
-        //     // All points with x between 1 and 5 (inclusive) have all the same sum of distances
-        //     // of 12. 
-        //     // The point x = 0 will have 12 + 2 = 14, as the imbalance was of 1 point more to the right.
-        //     // Point x = -1 will have 14 + 4 = 18, as the imabalance was of 4 points more to the right.
-        //     // From then on, for each movement to the left the total sum of distances increases by 4.
-            
-        //     std::vector<std::intmax_t> x_values, y_values;
-        //     x_values.reserve(in.size());
-        //     y_values.reserve(in.size());
-        //     std::transform(in.begin(), in.end(), std::back_inserter(x_values), [](const auto& p) { return p.x; });
-        //     std::transform(in.begin(), in.end(), std::back_inserter(y_values), [](const auto& p) { return p.y; });
-        //     std::sort(x_values.begin(), x_values.end());
-        //     std::sort(y_values.begin(), y_values.end());
+        class sum_of_distance_curve {
+        public:
+            sum_of_distance_curve(std::vector<intmax_t> in, std::intmax_t max_dist) noexcept : abscissae_(std::move(in)) {
+                // initialize ordinates as the minimum sum of distances
+                auto mid = std::next(abscissae_.begin(), abscissae_.size() / 2);
+                auto min_dist = std::accumulate(abscissae_.begin(), abscissae_.end(), std::intmax_t(0), [x = *mid](auto sum, auto p) { return sum + std::abs(p-x); });
+                ordinates_.resize(abscissae_.size(), min_dist);
+
+                // compute the sum of distances from mid-point to right
+                std::size_t mid_idx = abscissae_.size() / 2;
+                for (std::size_t idx = mid_idx + 1; idx < abscissae_.size(); ++idx)
+                {
+                    auto num_left = idx;
+                    auto num_right = abscissae_.size() - num_left;
+                    auto imbalance = (num_left - num_right);
+                    ordinates_[idx] = ordinates_[idx - 1] + imbalance * (abscissae_[idx] - abscissae_[idx - 1]);
+                }
+
+                // compute the sum of distances from mid-point to left
+                mid_idx = (abscissae_.size() - 1) / 2;
+                for (std::size_t i = 0; i < mid_idx; ++i) {
+                    std::size_t idx = mid_idx - i - 1;
+                    auto num_left = idx + 1;
+                    auto num_right = abscissae_.size() - num_left;
+                    auto imbalance = (num_right - num_left);
+                    ordinates_[idx] = ordinates_[idx + 1] + imbalance * (abscissae_[idx+1] - abscissae_[idx]);
+                }
+
+                // extrapolate so that forward/reverse are always called with regular values
+                std::size_t imbalance = abscissae_.size();
+                {
+                    auto incr_y = (max_dist - ordinates_.front());
+                    //auto incr_x = incr_y /
+                }
+
+            }
+
+            std::intmax_t forward(std::intmax_t x) noexcept {
+                auto it = std::upper_bound(abscissae_.begin(), abscissae_.end(), x);
+                assert(it != abscissae_.begin() && it != abscissae_.end());
+            }
+            std::optional<std::pair<std::intmax_t, std::intmax_t>> reverse(std::intmax_t x) noexcept {}
+        private:
+            std::vector<intmax_t> abscissae_;
+            std::vector<intmax_t> ordinates_;
+        };
+
+        std::size_t resultB(const input_t& in, std::size_t max_dist = 10000) {
+            // This problem can be thought in terms of the gradient of the sum of the distances.
+            // In particular, given points P = { in[0], ..., in[N-1] }, there is a squared
+            // region that leaves half the points above and half the points below, and
+            // half the points to the left and half to the right.
+            // This is the region sum of distances.
+            // Considering just the x coordinate, for each movement outside
+            // this inner region, the total sum of distances increases by the imbalance
+            // in points that are to the left w.r.t. the points to the right.
+            //
+            // For example, imagine points whose x are 0, 1, 5, 8.
+            // All points with x between 1 and 5 (inclusive) have all the same sum of distances
+            // of 12.
+            // The point x = 0 will have 12 + 2 = 14, as the imbalance was of 1 point more to the right.
+            // Point x = -1 will have 14 + 4 = 18, as the imabalance was of 4 points more to the right.
+            // From then on, for each movement to the left the total sum of distances increases by 4.
+
+            std::vector<std::intmax_t> x_values, y_values;
+            x_values.reserve(in.size());
+            y_values.reserve(in.size());
+            std::transform(in.begin(), in.end(), std::back_inserter(x_values), [](const auto& p) { return p.x; });
+            std::transform(in.begin(), in.end(), std::back_inserter(y_values), [](const auto& p) { return p.y; });
+            std::sort(x_values.begin(), x_values.end());
+            std::sort(y_values.begin(), y_values.end());
+
+            // Find sum of distances curve.
+            sum_of_distance_curve x_curve{ std::move(x_values), max_dist };
+            sum_of_distance_curve y_curve{ std::move(y_values), max_dist };
 
         //     // Find the minimum distance.
         //     auto left = std::next(x_values.begin(), x_values.size() / 2);
@@ -171,7 +222,7 @@ namespace aoc
     void solver<YEAR, DAY>::solveB(std::ostream& os, const void* type_erased_in) const
     {
         const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
-        os << "N/A";
+        os << resultB(in);
     }
 
     template<>
