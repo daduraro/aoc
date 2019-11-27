@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <numeric>
 #include <iterator>
+#include <functional>
 
 #include <ddr/math/vector.h>
 #include <ddr/math/grid.h>
@@ -89,52 +90,113 @@ namespace aoc
 
         class sum_of_distance_curve {
         public:
-            sum_of_distance_curve(std::vector<intmax_t> in, std::intmax_t max_dist) noexcept : abscissae_(std::move(in)) {
+            sum_of_distance_curve(const std::vector<intmax_t>& in, std::intmax_t max_dist) noexcept {
+                std::vector<ivec2> curve;
+                curve.reserve(in.size()+2);
+
+                std::size_t npoints = in.size();
+
                 // initialize ordinates as the minimum sum of distances
-                auto mid = std::next(abscissae_.begin(), abscissae_.size() / 2);
-                auto min_dist = std::accumulate(abscissae_.begin(), abscissae_.end(), std::intmax_t(0), [x = *mid](auto sum, auto p) { return sum + std::abs(p-x); });
-                ordinates_.resize(abscissae_.size(), min_dist);
+                auto mid = std::next(in.begin(), in.size() / 2);
+                auto min_dist = std::accumulate(in.begin(), in.end(), std::intmax_t(0), [x = *mid](auto sum, auto p) { return sum + std::abs(p-x); });
+                std::transform(in.begin(), in.end(), std::back_inserter(curve), [min_dist](auto x) { return ivec2{x, min_dist}; });
+                
+                // compute the sum of distances from mid-point to left
+                lmid_idx_ = (curve.size() - 1) / 2;
+                rmid_idx_ = curve.size() / 2;
+
+                // move origin to the middle region
+                origin_ = (curve[lmid_idx_].x + curve[rmid_idx_].x) / 2;
+                for (auto&[x, y] : curve) x -= origin_;
+
+                for (std::size_t i = 0; i < lmid_idx_; ++i) {
+                    std::size_t idx = lmid_idx_ - i - 1;
+                    auto num_left = idx + 1;
+                    auto num_right = curve.size() - num_left;
+                    auto imbalance = (num_right - num_left);
+                    curve[idx].y = curve[idx + 1].y + imbalance * (curve[idx+1].x - curve[idx].x);
+                }
 
                 // compute the sum of distances from mid-point to right
-                std::size_t mid_idx = abscissae_.size() / 2;
-                for (std::size_t idx = mid_idx + 1; idx < abscissae_.size(); ++idx)
+                for (std::size_t idx = rmid_idx_ + 1; idx < curve.size(); ++idx)
                 {
                     auto num_left = idx;
-                    auto num_right = abscissae_.size() - num_left;
+                    auto num_right = curve.size() - num_left;
                     auto imbalance = (num_left - num_right);
-                    ordinates_[idx] = ordinates_[idx - 1] + imbalance * (abscissae_[idx] - abscissae_[idx - 1]);
+                    curve[idx].y = curve[idx - 1].y + imbalance * (curve[idx].x - curve[idx - 1].x);
                 }
 
-                // compute the sum of distances from mid-point to left
-                mid_idx = (abscissae_.size() - 1) / 2;
-                for (std::size_t i = 0; i < mid_idx; ++i) {
-                    std::size_t idx = mid_idx - i - 1;
-                    auto num_left = idx + 1;
-                    auto num_right = abscissae_.size() - num_left;
-                    auto imbalance = (num_right - num_left);
-                    ordinates_[idx] = ordinates_[idx + 1] + imbalance * (abscissae_[idx+1] - abscissae_[idx]);
-                }
+                // delete repeated points
+                curve.erase(std::unique(curve.begin(), curve.end()), curve.end());
 
                 // extrapolate so that forward/reverse are always called with regular values
-                std::size_t imbalance = abscissae_.size();
-                {
-                    auto incr_y = (max_dist - ordinates_.front());
-                    //auto incr_x = incr_y /
+                if (std::intmax_t incr_y = (max_dist - curve.front().y); incr_y >= 0) {
+                    std::intmax_t incr_x = 1 + incr_y / npoints;
+                    std::intmax_t new_x = curve.front().x - incr_x;
+                    std::intmax_t new_y = curve.front().y + npoints * (curve.front().x - new_x);
+                    curve.insert(curve.begin(), ivec2{ new_x, new_y });
+                }
+                if (std::intmax_t incr_y = (max_dist - curve.back().y); incr_y >= 0) {
+                    std::intmax_t incr_x = 1 + incr_y / npoints;
+                    std::intmax_t new_x = curve.back().x + incr_x;
+                    std::intmax_t new_y = curve.back().y + npoints * (new_x - curve.back().x);
+                    curve.push_back(ivec2{ new_x, new_y });
                 }
 
+                // update mid indices
+                lmid_idx_ = std::distance(curve.begin(), std::find_if(curve.begin(), curve.end(), [min_dist](const auto& xy) { return xy.y == min_dist; }));
+                rmid_idx_ = lmid_idx_ + (npoints % 2 ? 1 : 0);
+
+                abscissae_.reserve(curve.size());
+                ordinates_.reserve(curve.size());
+                std::transform(curve.begin(), curve.end(), std::back_inserter(abscissae_), [](const auto& xy) { return xy.x; });
+                std::transform(curve.begin(), curve.end(), std::back_inserter(ordinates_), [](const auto& xy) { return xy.y; });
             }
 
-            std::intmax_t forward(std::intmax_t x) noexcept {
-                auto it = std::upper_bound(abscissae_.begin(), abscissae_.end(), x);
-                assert(it != abscissae_.begin() && it != abscissae_.end());
+            std::intmax_t forward(std::intmax_t x) const noexcept {
+                x -= origin_;
+                auto next = std::upper_bound(abscissae_.begin(), abscissae_.end(), x);
+                std::size_t idx = (std::size_t) std::distance(abscissae_.begin(), next);
+                assert(next != abscissae_.begin() && next != abscissae_.end());
+                const auto& x0 = abscissae_[idx-1]; const auto& x1 = abscissae_[idx];
+                const auto& y0 = ordinates_[idx-1]; const auto& y1 = ordinates_[idx];
+                return y0 + (x - x0) * (y1 - y0) / (x1 - x0); // this will be exact
             }
-            std::optional<std::pair<std::intmax_t, std::intmax_t>> reverse(std::intmax_t x) noexcept {}
+            std::pair<std::intmax_t, std::intmax_t> reverse(std::intmax_t y) const noexcept {
+                assert(y >= min_dist());
+                std::intmax_t first, second;
+                {
+                    auto next = std::upper_bound(ordinates_.begin(), std::next(ordinates_.begin(), lmid_idx_), y, std::greater{});
+                    std::size_t idx = (std::size_t) std::distance(ordinates_.begin(), next);
+                    const auto& x0 = abscissae_[idx-1]; const auto& x1 = abscissae_[idx];
+                    const auto& y0 = ordinates_[idx-1]; const auto& y1 = ordinates_[idx];
+                    // round towards x1
+                    first = origin_ + x1 - (y1 - y) * (x1 - x0) / (y1 - y0); 
+                }
+                {
+                    auto next = std::upper_bound(std::next(ordinates_.begin(), rmid_idx_), std::prev(ordinates_.end()), y);
+                    std::size_t idx = (std::size_t) std::distance(ordinates_.begin(), next);
+                    auto x0 = abscissae_[idx-1]; auto x1 = abscissae_[idx];
+                    auto y0 = ordinates_[idx-1]; auto y1 = ordinates_[idx];
+                    // round towards x0
+                    second = origin_ + x0 + (y - y0) * (x1 - x0) / (y1 - y0); 
+                }
+
+                return { first, second };
+            }
+
+            std::intmax_t min_dist() const noexcept {
+                return ordinates_[lmid_idx_];
+            }
+
         private:
             std::vector<intmax_t> abscissae_;
             std::vector<intmax_t> ordinates_;
+            std::size_t lmid_idx_, rmid_idx_;
+            std::intmax_t origin_;
         };
 
-        std::size_t resultB(const input_t& in, std::size_t max_dist = 10000) {
+        std::size_t resultB(const input_t& in, std::size_t max_dist = 9999) {
             // This problem can be thought in terms of the gradient of the sum of the distances.
             // In particular, given points P = { in[0], ..., in[N-1] }, there is a squared
             // region that leaves half the points above and half the points below, and
@@ -150,7 +212,6 @@ namespace aoc
             // The point x = 0 will have 12 + 2 = 14, as the imbalance was of 1 point more to the right.
             // Point x = -1 will have 14 + 4 = 18, as the imabalance was of 4 points more to the right.
             // From then on, for each movement to the left the total sum of distances increases by 4.
-
             std::vector<std::intmax_t> x_values, y_values;
             x_values.reserve(in.size());
             y_values.reserve(in.size());
@@ -160,53 +221,19 @@ namespace aoc
             std::sort(y_values.begin(), y_values.end());
 
             // Find sum of distances curve.
-            sum_of_distance_curve x_curve{ std::move(x_values), max_dist };
-            sum_of_distance_curve y_curve{ std::move(y_values), max_dist };
+            sum_of_distance_curve x_curve{ x_values, std::intmax_t(max_dist) };
+            sum_of_distance_curve y_curve{ y_values, std::intmax_t(max_dist) };
 
-        //     // Find the minimum distance.
-        //     auto left = std::next(x_values.begin(), x_values.size() / 2);
-        //     auto bot = std::next(y_values.begin(), y_values.size() / 2);
+            if (std::size_t(x_curve.min_dist() + y_curve.min_dist()) > max_dist) return 0;
 
-        //     auto total_dist = [](const std::vector<std::intmax_t>& vs, std::intmax_t x) -> std::intmax_t {
-        //         return std::accumulate(vs.begin(), vs.end(), std::intmax_t(0), [x](std::intmax_t accum, std::intmax_t y) { return accum + std::abs(x-y); });
-        //     };
-
-        //     auto smallest_dist = total_dist(x_values, *left) + total_dist(y_values, *bot);
-        //     if (smallest_dist > max_dist) return 0;
-
-        //     // Solve the problem on R (as the solution is separable).
-        //     auto size_below_dist_factory = [allowance = max_dist - smallest_dist](const std::vector<std::intmax_t>& pts) {
-        //         auto left = std::next(pts.rbegin(), (pts.size() + 1) / 2);
-        //         auto right = std::next(pts.begin(), (pts.size() + 1) / 2);
-
-        //         std::vector<std::intmax_t> left_dist, right_dist;
-        //         auto compute_dist_vector = [dist_ = allowance](auto start, auto end, auto pos_type) {
-        //             std::vector<std::intmax_t> result;
-        //             auto dist = dist_;
-        //             constexpr bool pos = decltype(pos_type)::value;
-        //             auto it = start;
-        //             for (int x = *start; dist >= 0; x += (pos ? 1 : -1)) {
-        //                 while (it != end && (pos ? *it > x : *it < x)) ++it;
-        //                 dist -= std::distance(start, it);
-        //                 result.push_back(dist);
-        //             }
-        //             return result;
-        //         };
-
-        //         auto left_dist = compute_dist_vector(left, pts.rend(), std::false_type{});
-        //         auto right_dist = compute_dist_vector(right, pts.end(), std::true_type{});
-
-
-        //         return [left_dist = std::move(left_dist), right_dist = std::move(right_dist), left_v = *left, right_v = *right]
-        //         (std::intmax_t x) -> std::intmax_t
-        //         {
-        //             if (left_v <= x && x <= right_v) return 0;
-
-        //         };
-        //     };
-            return 0;
+            std::intmax_t accum = 0;
+            auto [x0, x1] = x_curve.reverse(max_dist - y_curve.min_dist());
+            for (auto x = x0; x <= x1; ++x) {
+                auto [y0, y1] = y_curve.reverse(max_dist - x_curve.forward(x));
+                accum += y1 - y0 + 1;
+            }
+            return std::size_t(accum);
         }
-
     }
 
     template<>
