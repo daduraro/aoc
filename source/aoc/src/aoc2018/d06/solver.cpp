@@ -101,7 +101,7 @@ namespace aoc
                 auto min_dist = std::accumulate(in.begin(), in.end(), std::intmax_t(0), [x = *mid](auto sum, auto p) { return sum + std::abs(p-x); });
                 std::transform(in.begin(), in.end(), std::back_inserter(curve), [min_dist](auto x) { return ivec2{x, min_dist}; });
                 
-                // compute the sum of distances from mid-point to left
+                // find mid points
                 lmid_idx_ = (curve.size() - 1) / 2;
                 rmid_idx_ = curve.size() / 2;
 
@@ -109,6 +109,7 @@ namespace aoc
                 origin_ = (curve[lmid_idx_].x + curve[rmid_idx_].x) / 2;
                 for (auto&[x, y] : curve) x -= origin_;
 
+                // compute the sum of distances from mid-point to left
                 for (std::size_t i = 0; i < lmid_idx_; ++i) {
                     std::size_t idx = lmid_idx_ - i - 1;
                     auto num_left = idx + 1;
@@ -147,6 +148,7 @@ namespace aoc
                 lmid_idx_ = std::distance(curve.begin(), std::find_if(curve.begin(), curve.end(), [min_dist](const auto& xy) { return xy.y == min_dist; }));
                 rmid_idx_ = lmid_idx_ + (npoints % 2 ? 1 : 0);
 
+                // unpack x, y into different vectors
                 abscissae_.reserve(curve.size());
                 ordinates_.reserve(curve.size());
                 std::transform(curve.begin(), curve.end(), std::back_inserter(abscissae_), [](const auto& xy) { return xy.x; });
@@ -156,11 +158,11 @@ namespace aoc
             std::intmax_t forward(std::intmax_t x) const noexcept {
                 x -= origin_;
                 auto next = std::upper_bound(abscissae_.begin(), abscissae_.end(), x);
-                std::size_t idx = (std::size_t) std::distance(abscissae_.begin(), next);
                 assert(next != abscissae_.begin() && next != abscissae_.end());
+                std::size_t idx = (std::size_t) std::distance(abscissae_.begin(), next);
                 const auto& x0 = abscissae_[idx-1]; const auto& x1 = abscissae_[idx];
                 const auto& y0 = ordinates_[idx-1]; const auto& y1 = ordinates_[idx];
-                return y0 + (x - x0) * (y1 - y0) / (x1 - x0); // this will be exact
+                return y0 + (x - x0) * (y1 - y0) / (x1 - x0); // this division will be exact by construction
             }
             std::pair<std::intmax_t, std::intmax_t> reverse(std::intmax_t y) const noexcept {
                 assert(y >= min_dist());
