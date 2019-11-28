@@ -1,0 +1,77 @@
+#include "aoc/solver.h"
+#include "aoc/error.h"
+#include "version.h"
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <array>
+#include <algorithm>
+#include <numeric>
+#include <iterator>
+#include <limits>
+#include <type_traits>
+#include <cassert>
+
+namespace aoc
+{
+    namespace {
+        constexpr std::size_t YEAR = AOC_YEAR;
+        constexpr std::size_t DAY = AOC_DAY;
+        using input_t = std::string;
+
+        template<typename T>
+        std::ostream& operator<<(std::ostream& os, const std::optional<T>& r) noexcept {
+            if (std::ostream::sentry s(os); s) {
+                if (r) os << r.value();
+                else   os << "N/A";
+            }
+            return os;
+        }
+
+        std::optional<std::size_t> resultA(const input_t& in) {
+            // ...
+            return std::nullopt;
+        }
+
+        std::optional<std::size_t> resultB(const input_t& in) {
+            // ...
+            return std::nullopt;
+        }
+    }
+
+    template<>
+    void solver<YEAR, DAY>::solveA(std::ostream& os, const void* type_erased_in) const
+    {
+        const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
+        os << resultA(in);
+    }
+
+    template<>
+    void solver<YEAR, DAY>::solveB(std::ostream& os, const void* type_erased_in) const
+    {
+        const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
+        os << resultB(in);
+    }
+
+    template<>
+    void* solver<YEAR, DAY>::parse(std::istream& is) const
+    {
+        std::istream::sentry s(is);
+        if (!s) throw parse_exception{};
+
+        std::unique_ptr<input_t> ptr{ new input_t{} };
+        input_t& str = *ptr;
+
+        // ...
+
+        return ptr.release();
+    }
+
+    template<>
+    void solver<YEAR, DAY>::cleanup(void* ptr) const noexcept
+    {
+        if constexpr (std::is_array_v<input_t>) delete[] reinterpret_cast<input_t*>(ptr);
+        else delete reinterpret_cast<input_t*>(ptr);
+    }
+}
