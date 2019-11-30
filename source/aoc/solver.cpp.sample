@@ -11,15 +11,35 @@
 #include <iterator>
 #include <limits>
 #include <type_traits>
+#include <memory>
 #include <cassert>
 
 namespace aoc
 {
     namespace {
         constexpr std::size_t YEAR = AOC_YEAR;
-        constexpr std::size_t DAY = AOC_DAY;
+        constexpr std::size_t DAY  = AOC_DAY;
         using input_t = std::string;
 
+        auto resultA(const input_t& in) noexcept -> std::optional<std::size_t>
+        {
+            // ...
+            return std::nullopt;
+        }
+
+        auto resultB(const input_t& in) noexcept -> std::optional<std::size_t>
+        {
+            // ...
+            return std::nullopt;
+        }
+
+        void parse_input(std::istream& is, input_t& in)
+        {
+            // ...
+        }
+    }
+
+    namespace {
         template<typename T>
         std::ostream& operator<<(std::ostream& os, const std::optional<T>& r) noexcept {
             if (std::ostream::sentry s(os); s) {
@@ -27,16 +47,6 @@ namespace aoc
                 else   os << "N/A";
             }
             return os;
-        }
-
-        std::optional<std::size_t> resultA(const input_t& in) {
-            // ...
-            return std::nullopt;
-        }
-
-        std::optional<std::size_t> resultB(const input_t& in) {
-            // ...
-            return std::nullopt;
         }
     }
 
@@ -58,12 +68,12 @@ namespace aoc
     void* solver<YEAR, DAY>::parse(std::istream& is) const
     {
         std::istream::sentry s(is);
-        if (!s) throw parse_exception{};
+        if (!s) throw parse_exception{ "invalid input stream" };
 
-        std::unique_ptr<input_t> ptr{ new input_t{} };
-        input_t& str = *ptr;
+        std::unique_ptr<input_t> ptr{ new input_t };
+        input_t& in = *ptr;
 
-        // ...
+        parse_input(is, in);
 
         return ptr.release();
     }

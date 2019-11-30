@@ -5,6 +5,9 @@ function(aoc AOC_YEAR AOC_DAY DIR)
     file(GLOB sourcefiles CONFIGURE_DEPENDS "${DIR}/*")
     set(EXE_NAME aoc${AOC_YEAR}_${AOC_DAY})
 
+    # remove leading 0 from AOC_DAY
+    string(REGEX REPLACE "0*([1-9][0-9]*)" "\\1" AOC_DAY "${AOC_DAY}")
+
     add_executable(${EXE_NAME}
         "${AOC_CFG_DIR}/main.cpp"
         ${sourcefiles}
