@@ -18,6 +18,7 @@
 #include <type_traits>
 #include <cstdlib>
 #include <tuple>
+#include <regex>
 
 #include <ddr/porting.h>
 
@@ -63,66 +64,42 @@ namespace aoc
             constexpr std::size_t NO_ID = std::numeric_limits<std::size_t>::max();
             input_t vec;
 
-            auto expect = [](std::istream& is, const auto& e)
-            {
-                if constexpr (std::is_same_v<stdx::remove_cvref_t<decltype(e)>, char>) {
-                    char x;
-                    if (!(is >> x)) throw parse_exception{};
-                    if (x != e)  throw parse_exception{};
-                } else {
-                    char x;
-                    for (char a : e) {
-                        if (!(is >> x)) throw parse_exception{};
-                        if (x != a)  throw parse_exception{};
-                    }
-                }
-            };
-
-            auto parse = [](std::istream& is, auto& x)
-            {
-                if ((is >> x).fail()) throw parse_exception{};
-            };
+            std::regex date_re{ R"re(^\[(\d+)-(\d+)-(\d+) (\d+):(\d+)\] )re" };
+            std::regex fallsleep_re{ R"re(falls asleep)re" };
+            std::regex wakeup_re{ R"re(wakes up)re" };
+            std::regex shift_re{ R"re(Guard #(\d+) begins shift)re" };
 
             std::string line;
             while (std::getline(is, line))
             {
                 if (line.empty()) continue;
 
-                std::stringstream line_ss{ std::move(line) };
+                std::smatch date_match;
+                if (!std::regex_search(line, date_match, date_re)) throw parse_exception{ "unexpected line format" };
+
                 auto& [t, id, action] = vec.emplace_back();
                 id = NO_ID;
 
-                std::intmax_t year, month, day, hour, min;
-
-                expect(line_ss, '[');
-                parse(line_ss, year);
-                expect(line_ss, '-');
-                parse(line_ss, month);
-                expect(line_ss, '-');
-                parse(line_ss, day);
-                parse(line_ss, hour);
-                expect(line_ss, ':');
-                parse(line_ss, min);
-                expect(line_ss, ']');
+                int year  = std::stoi(date_match[1].str());
+                int month = std::stoi(date_match[2].str());
+                int day   = std::stoi(date_match[3].str());
+                int hour  = std::stoi(date_match[4].str());
+                int min   = std::stoi(date_match[5].str());
                 t = {year, month, day, hour, min};
 
-                std::string word;
-                parse(line_ss, word);
-
-                if (word[0] == 'G') { // begin shift
-                    expect(line_ss, '#');
-                    parse(line_ss, id);
+                if (std::smatch action_match; std::regex_match( date_match[0].second, line.cend(), action_match, fallsleep_re)) action = event_t::sleep;
+                else if (std::smatch action_match; std::regex_match( date_match[0].second, line.cend(), action_match, wakeup_re)) action = event_t::awake;
+                else if (std::smatch action_match; std::regex_match( date_match[0].second, line.cend(), action_match, shift_re))
+                {
+                    id = std::stoi(action_match[1].str());
                     action = event_t::begin;
-                } else if (word[0] == 'f') {
-                    action = event_t::sleep;
-                } else {
-                    action = event_t::awake;
                 }
             }
 
             if (vec.empty()) throw parse_exception{};
 
             std::sort(vec.begin(), vec.end(), [](const record_t& lhs, const record_t& rhs) { return std::get<date_t>(lhs) < std::get<date_t>(rhs); });
+            if (std::get<event_t>(vec[0]) !=  event_t::begin) throw parse_exception{ "first event is not a guard beginning their shift" };
 
             std::size_t last_id = NO_ID;
             for (auto&[t, id, e] : vec) {
