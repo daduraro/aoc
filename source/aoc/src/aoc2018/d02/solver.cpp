@@ -1,7 +1,4 @@
 #include "aoc/solver.h"
-#include "aoc/error.h"
-
-#include "version.h"
 
 #include <iostream>
 #include <cstddef>
@@ -21,7 +18,51 @@
 namespace aoc
 {
     namespace {
+        constexpr std::size_t YEAR = 2018;
+        constexpr std::size_t  DAY = 2;
         using input_t = std::vector<std::string>;
+
+        input_t parse_input(std::istream& is)
+        {
+            input_t in;
+            using istream_it = std::istream_iterator<std::string>;
+            std::copy(istream_it(is), istream_it(), std::back_inserter(in));
+            if (in.empty() || !is.eof()) throw parse_exception{};
+
+            // guarantee all boxes ID are of same size and with characters in 'a'-'z' range (lowercase)
+            std::size_t size_id = in[0].size();
+            for (const auto& s : in) {
+                if (s.size() != size_id || s.end() != std::find_if(s.begin(), s.end(), [](char ch) { return ch < 'a' || ch > 'z'; }))
+                    throw parse_exception{};
+            }
+            return in;
+        }
+
+        std::size_t resultA(const input_t& in) noexcept
+        {
+            std::size_t exactly_2 = 0;
+            std::size_t exactly_3 = 0;
+            for (std::string s : in) {
+                std::sort(s.begin(), s.end());
+
+                bool has_two = false;
+                bool has_three = false;
+                auto i = s.begin();
+                decltype(i) j;
+                while (i != s.end()) {
+                    auto j = std::adjacent_find(i, s.end(), [](const auto& lhs, const auto& rhs) { return lhs != rhs; });
+                    std::advance(j, j != s.end());
+                    auto ncount = std::distance(i, j);
+                    if (ncount == 2) has_two = true;
+                    else if (ncount == 3) has_three = true;
+                    i = j;
+                }
+                exactly_2 += std::size_t(has_two);
+                exactly_3 += std::size_t(has_three);
+            }
+
+            return exactly_2 * exactly_3;
+        }
 
         struct trie_t {
             struct node_t {
@@ -103,68 +144,7 @@ namespace aoc
     }
 
     template<>
-    void solver<AOC_YEAR, AOC_DAY>::solveA(std::ostream& os, const void* type_erased_in) const
-    {
-        const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
-
-        std::size_t exactly_2 = 0;
-        std::size_t exactly_3 = 0;
-        for (std::string s : in) {
-            std::sort(s.begin(), s.end());
-
-            bool has_two = false;
-            bool has_three = false;
-            auto i = s.begin();
-            decltype(i) j;
-            while (i != s.end()) {
-                auto j = std::adjacent_find(i, s.end(), [](const auto& lhs, const auto& rhs) { return lhs != rhs; });
-                std::advance(j, j != s.end());
-                auto ncount = std::distance(i, j);
-                if (ncount == 2) has_two = true;
-                else if (ncount == 3) has_three = true;
-                i = j;
-            }
-            exactly_2 += std::size_t(has_two);
-            exactly_3 += std::size_t(has_three);
-        }
-
-        os << exactly_2 * exactly_3;
+    auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
+        return create_solver<YEAR, DAY>(parse_input, resultA, resultB);
     }
-
-    template<>
-    void solver<AOC_YEAR, AOC_DAY>::solveB(std::ostream& os, const void* type_erased_in) const
-    {
-        const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
-        auto result = resultB(in);
-        if (result) os << *result;
-        else os << "N/A";
-    }
-
-    template<>
-    void* solver<AOC_YEAR, AOC_DAY>::parse(std::istream& is) const
-    {
-        std::unique_ptr<input_t> ptr{ new input_t{} };
-
-        input_t& vec = *ptr;
-
-        using stream_iter = std::istream_iterator<std::string>;
-        std::copy(stream_iter(is), stream_iter(), std::back_inserter(vec));
-        if (vec.empty() || !is.eof()) throw parse_exception{};
-
-        // guarantee all boxes ID are of same size and with characters in 'a'-'z' range (lowercase)
-        std::size_t size_id = vec[0].size();
-        for (const auto& s : vec) {
-            if (s.size() != size_id || s.end() != std::find_if(s.begin(), s.end(), [](char ch) { return ch < 'a' || ch > 'z'; }))
-                throw parse_exception{};
-        }
-
-        return ptr.release();
-    }
-
-    template<>
-    void solver<AOC_YEAR, AOC_DAY>::cleanup(void* ptr) const noexcept
-    {
-        delete reinterpret_cast<input_t*>(ptr);
-    }
-
 }

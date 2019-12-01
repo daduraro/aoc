@@ -1,5 +1,4 @@
 #include "aoc/solver.h"
-#include "aoc/error.h"
 
 #include <iostream>
 #include <fstream>
@@ -11,6 +10,8 @@
 #include <map>
 #include <functional>
 #include <memory>
+
+#include <ddr/porting.h>
 
 namespace aoc {
 

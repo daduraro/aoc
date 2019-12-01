@@ -1,7 +1,4 @@
 #include "aoc/solver.h"
-#include "aoc/error.h"
-
-#include "version.h"
 
 #include <iostream>
 #include <cstddef>
@@ -17,9 +14,26 @@
 namespace aoc
 {
     namespace {
+        constexpr std::size_t YEAR = 2018;
+        constexpr std::size_t  DAY = 1;
         using input_t = std::vector<std::intmax_t>;
 
-        std::optional<intmax_t> first_repetition(const std::vector<std::intmax_t>& fs) noexcept
+        input_t parse_input(std::istream& is) {
+            input_t in;
+            using istream_it = std::istream_iterator<std::intmax_t>;
+            std::copy(istream_it(is), istream_it(), std::back_inserter(in));
+            if (!is.eof()) throw parse_exception{};
+            if (in.empty()) throw parse_exception{};
+
+            return in;
+        }
+
+        std::intmax_t resultA(const input_t& in) noexcept
+        {
+            return std::accumulate(std::begin(in), std::end(in), (std::intmax_t)0);
+        }
+
+        std::optional<std::intmax_t> first_repetition(const input_t& fs) noexcept
         {
             // can be made more efficient (n log n)
             for (std::size_t i = 0; i+1 < fs.size(); ++i) {
@@ -31,7 +45,7 @@ namespace aoc
             return std::nullopt;
         }
 
-        std::optional<intmax_t> result_B(const input_t& input) noexcept
+        std::optional<std::intmax_t> resultB(const input_t& input) noexcept
         {
             // given frequencies f_i = input[0] + ... + input[i], i < N-1
             // we are looking for:
@@ -103,42 +117,10 @@ namespace aoc
             }
             return k != not_found ? std::optional(result) : std::nullopt;
         }
-
     }
 
     template<>
-    void solver<AOC_YEAR, AOC_DAY>::solveA(std::ostream& os, const void* in) const
-    {
-        const input_t& input = *reinterpret_cast<const input_t*>(in);
-        os << std::accumulate(std::begin(input), std::end(input), (std::intmax_t)0);
+    auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
+        return create_solver<YEAR, DAY>(parse_input, resultA, resultB);
     }
-
-    template<>
-    void solver<AOC_YEAR, AOC_DAY>::solveB(std::ostream& os, const void* in) const
-    {
-        const input_t& input = *reinterpret_cast<const input_t*>(in);
-        auto res = result_B(input);
-        if (res) os << *res;
-        else os << "N/A";
-    }
-
-    template<>
-    void* solver<AOC_YEAR, AOC_DAY>::parse(std::istream& is) const
-    {
-        std::unique_ptr<input_t> ptr{ new input_t{} };
-
-        input_t& vec = *ptr;
-        using is_it_t = std::istream_iterator<std::intmax_t>;
-        std::copy(is_it_t(is), is_it_t(), std::back_inserter(vec));
-        if (vec.empty()) throw parse_exception{};
-
-        return ptr.release();
-    }
-
-    template<>
-    void solver<AOC_YEAR, AOC_DAY>::cleanup(void* ptr) const noexcept
-    {
-        delete reinterpret_cast<input_t*>(ptr);
-    }
-
 }

@@ -1,8 +1,4 @@
 #include "aoc/solver.h"
-#include "aoc/error.h"
-#include "version.h"
-
-#include "ddr/porting.h"
 
 #include <iostream>
 #include <cstddef>
@@ -23,9 +19,14 @@
 #include <cstdlib>
 #include <tuple>
 
+#include <ddr/porting.h>
+
 namespace aoc
 {
     namespace {
+        constexpr std::size_t YEAR = 2018;
+        constexpr std::size_t  DAY = 4;
+
         class date_t {
         public:
             // regular fake dates, where months have 31 days, and a year always have 12 months
@@ -57,8 +58,83 @@ namespace aoc
         using record_t = std::tuple<date_t, id_t, event_t>;
         using input_t = std::vector<record_t>;
 
+        input_t parse_input(std::istream& is)
+        {
+            constexpr std::size_t NO_ID = std::numeric_limits<std::size_t>::max();
+            input_t vec;
+
+            auto expect = [](std::istream& is, const auto& e)
+            {
+                if constexpr (std::is_same_v<stdx::remove_cvref_t<decltype(e)>, char>) {
+                    char x;
+                    if (!(is >> x)) throw parse_exception{};
+                    if (x != e)  throw parse_exception{};
+                } else {
+                    char x;
+                    for (char a : e) {
+                        if (!(is >> x)) throw parse_exception{};
+                        if (x != a)  throw parse_exception{};
+                    }
+                }
+            };
+
+            auto parse = [](std::istream& is, auto& x)
+            {
+                if ((is >> x).fail()) throw parse_exception{};
+            };
+
+            std::string line;
+            while (std::getline(is, line))
+            {
+                if (line.empty()) continue;
+
+                std::stringstream line_ss{ std::move(line) };
+                auto& [t, id, action] = vec.emplace_back();
+                id = NO_ID;
+
+                std::intmax_t year, month, day, hour, min;
+
+                expect(line_ss, '[');
+                parse(line_ss, year);
+                expect(line_ss, '-');
+                parse(line_ss, month);
+                expect(line_ss, '-');
+                parse(line_ss, day);
+                parse(line_ss, hour);
+                expect(line_ss, ':');
+                parse(line_ss, min);
+                expect(line_ss, ']');
+                t = {year, month, day, hour, min};
+
+                std::string word;
+                parse(line_ss, word);
+
+                if (word[0] == 'G') { // begin shift
+                    expect(line_ss, '#');
+                    parse(line_ss, id);
+                    action = event_t::begin;
+                } else if (word[0] == 'f') {
+                    action = event_t::sleep;
+                } else {
+                    action = event_t::awake;
+                }
+            }
+
+            if (vec.empty()) throw parse_exception{};
+
+            std::sort(vec.begin(), vec.end(), [](const record_t& lhs, const record_t& rhs) { return std::get<date_t>(lhs) < std::get<date_t>(rhs); });
+
+            std::size_t last_id = NO_ID;
+            for (auto&[t, id, e] : vec) {
+                if (e == event_t::begin) last_id = id;
+                else id = last_id;
+            }
+
+            return vec;
+        }
+
         template<bool partA>
-        std::size_t result(input_t in, std::bool_constant<partA>) noexcept
+        std::size_t result(input_t in) noexcept
         {
             // sort by guard id, preserving time order
             std::stable_sort(in.begin(), in.end(), [](const auto& lhs, const auto& rhs) { return std::get<id_t>(lhs) < std::get<id_t>(rhs); });
@@ -104,108 +180,10 @@ namespace aoc
             auto max_it = std::max_element(guards.begin(), guards.end(), [](const auto& x, const auto& y){ return std::get<partA ? 1 : 3>(x) < std::get<partA ? 1 : 3>(y); });
             return std::get<0>(*max_it) * std::get<2>(*max_it);
         }
-
     }
 
     template<>
-    void solver<AOC_YEAR, AOC_DAY>::solveA(std::ostream& os, const void* type_erased_in) const
-    {
-        const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
-        os << result(in, std::true_type{});
+    auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
+        return create_solver<YEAR, DAY>(parse_input, result<true>, result<false>);
     }
-
-    template<>
-    void solver<AOC_YEAR, AOC_DAY>::solveB(std::ostream& os, const void* type_erased_in) const
-    {
-        const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
-        os << result(in, std::false_type{});
-    }
-
-    template<>
-    void* solver<AOC_YEAR, AOC_DAY>::parse(std::istream& is) const
-    {
-        constexpr std::size_t NO_ID = std::numeric_limits<std::size_t>::max();
-
-        std::istream::sentry s(is);
-        if (!s) throw parse_exception{};
-
-        std::unique_ptr<input_t> ptr{ new input_t{} };
-        input_t& vec = *ptr;
-
-        auto expect = [](std::istream& is, const auto& e)
-        {
-            if constexpr (std::is_same_v<stdx::remove_cvref_t<decltype(e)>, char>) {
-                char x;
-                if (!(is >> x)) throw parse_exception{};
-                if (x != e)  throw parse_exception{};
-            } else {
-                char x;
-                for (char a : e) {
-                    if (!(is >> x)) throw parse_exception{};
-                    if (x != a)  throw parse_exception{};
-                }
-            }
-        };
-
-        auto parse = [](std::istream& is, auto& x)
-        {
-            if ((is >> x).fail()) throw parse_exception{};
-        };
-
-        std::string line;
-        while (std::getline(is, line))
-        {
-            if (line.empty()) continue;
-
-            std::stringstream line_ss{ std::move(line) };
-            auto& [t, id, action] = vec.emplace_back();
-            id = NO_ID;
-
-            std::intmax_t year, month, day, hour, min;
-
-            expect(line_ss, '[');
-            parse(line_ss, year);
-            expect(line_ss, '-');
-            parse(line_ss, month);
-            expect(line_ss, '-');
-            parse(line_ss, day);
-            parse(line_ss, hour);
-            expect(line_ss, ':');
-            parse(line_ss, min);
-            expect(line_ss, ']');
-            t = {year, month, day, hour, min};
-
-            std::string word;
-            parse(line_ss, word);
-
-            if (word[0] == 'G') { // begin shift
-                expect(line_ss, '#');
-                parse(line_ss, id);
-                action = event_t::begin;
-            } else if (word[0] == 'f') {
-                action = event_t::sleep;
-            } else {
-                action = event_t::awake;
-            }
-        }
-
-        if (vec.empty()) throw parse_exception{};
-
-        std::sort(vec.begin(), vec.end(), [](const record_t& lhs, const record_t& rhs) { return std::get<date_t>(lhs) < std::get<date_t>(rhs); });
-
-        std::size_t last_id = NO_ID;
-        for (auto&[t, id, e] : vec) {
-            if (e == event_t::begin) last_id = id;
-            else id = last_id;
-        }
-
-        return ptr.release();
-    }
-
-    template<>
-    void solver<AOC_YEAR, AOC_DAY>::cleanup(void* ptr) const noexcept
-    {
-        delete reinterpret_cast<input_t*>(ptr);
-    }
-
 }
