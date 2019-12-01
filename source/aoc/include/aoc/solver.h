@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <iosfwd>
+#include <chrono>
 
 #include <aoc/serialize.h>
 #include <aoc/error.h>
@@ -14,9 +15,9 @@ namespace aoc
         virtual ~solver_interface() noexcept = default;
         virtual std::size_t year() const noexcept = 0;
         virtual std::size_t day() const noexcept = 0;
-        virtual void* parse(std::istream& is) const = 0;
-        virtual void solveA(std::ostream& os, const void* in) const noexcept = 0;
-        virtual void solveB(std::ostream& os, const void* in) const noexcept = 0;
+        virtual auto parse(std::istream& is) const -> std::tuple<void*, std::chrono::microseconds> = 0;
+        virtual auto solveA(std::ostream& os, const void* in) const noexcept -> std::chrono::microseconds = 0;
+        virtual auto solveB(std::ostream& os, const void* in) const noexcept -> std::chrono::microseconds = 0;
         virtual void cleanup(void*) const noexcept = 0;
     };
 
@@ -28,6 +29,7 @@ namespace aoc
     // solver implementation based on three callbacks (parse, resultA, resultB)
     template<std::size_t YEAR, std::size_t DAY, typename I, typename A, typename B>
     class solver final : public solver_interface {
+        using clock_t = std::chrono::steady_clock;
     public:
         using input_t = std::invoke_result_t<I, std::istream&>;
         template<typename FI, typename FA, typename FB>
@@ -36,22 +38,38 @@ namespace aoc
         ~solver() noexcept = default;
         virtual std::size_t year() const noexcept override { return YEAR; }
         virtual std::size_t day() const noexcept override { return DAY; }
-        virtual void* parse(std::istream& is) const override
+        virtual auto parse(std::istream& is) const -> std::tuple<void*, std::chrono::microseconds> override
         {
             std::istream::sentry s(is);
             if (!s) throw parse_exception{ "invalid input stream" };
-            return new input_t{ parse_input(is) };
+            auto start = clock_t::now();
+            input_t in = parse_input(is);
+            auto end = clock_t::now();
+            return { new input_t{ std::move(in) }, std::chrono::duration_cast<std::chrono::microseconds>(end - start) };
         }
-        virtual void solveA(std::ostream& os, const void* type_erased_in) const noexcept override
+
+        virtual auto solveA(std::ostream& os, const void* type_erased_in) const noexcept -> std::chrono::microseconds override
         {
             const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
-            os << resultA(in);
+            auto start = clock_t::now();
+            auto result = resultA(in);
+            auto end = clock_t::now();
+
+            os << std::move(result);
+            return std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         }
-        virtual void solveB(std::ostream& os, const void* type_erased_in) const noexcept override
+
+        virtual auto solveB(std::ostream& os, const void* type_erased_in) const noexcept -> std::chrono::microseconds override
         {
             const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
-            os << resultB(in);
+            auto start = clock_t::now();
+            auto result = resultB(in);
+            auto end = clock_t::now();
+
+            os << std::move(result);
+            return std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         }
+
         virtual void cleanup(void* ptr) const noexcept override
         {
             if constexpr (std::is_array_v<input_t>) delete[] reinterpret_cast<input_t*>(ptr);

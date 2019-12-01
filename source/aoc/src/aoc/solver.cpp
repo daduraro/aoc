@@ -111,12 +111,17 @@ namespace aoc {
 
         int solve(config cfg, const solver_interface& solver) noexcept
         {
+            constexpr std::size_t TIME_WIDTH = 12;
             for (auto& problem : cfg.dataset) {
                 std::ostream& os = cfg.stream;
                 os << std::setw(20) << std::left << problem.input.fpath.filename();
                 std::unique_ptr<void, std::function<void(void*)>> input{ nullptr, [&solver](void* ptr){ solver.cleanup(ptr); }};
                 try {
-                    input.reset(solver.parse(problem.input.stream));
+                    auto[ptr, time] = solver.parse(problem.input.stream);
+                    input.reset(ptr);
+                    std::stringstream ss;
+                    ss << "(" << time.count() << " µs)";
+                    os << "parse: " << std::right << std::setw(TIME_WIDTH) << ss.str();
                 }
                 catch (aoc_exception&) {
                     os << "ERROR - could not parse input" << std::endl;
@@ -127,21 +132,27 @@ namespace aoc {
                 bool errors_happened = false;
 
                 try {
-                    os << "partA: ";
+                    os << "    partA: ";
                     os << std::setw(10) << std::right;
                     if (problem.compareA) {
                         std::stringstream error_buff;
                         std::stringstream buffer;
-                        solver.solveA(buffer, input.get());
+                        auto time = solver.solveA(buffer, input.get());
                         if (equal(problem.compareA->stream, buffer.str(), error_buff)) {
                             os << "[PASSED]";
+                            std::stringstream ss;
+                            ss << "(" << time.count() << " µs)";
+                            os << std::right << std::setw(TIME_WIDTH) << ss.str();
                         } else {
                             os << "[FAILED]";
                             errors << "FAILED while solving partA: " << error_buff.rdbuf() << "\n";
                             errors_happened = true;
                         }
                     } else {
-                        solver.solveA(os, input.get());
+                        auto time = solver.solveA(os, input.get());
+                        std::stringstream ss;
+                        ss << "(" << time.count() << " µs)";
+                        os << std::right << std::setw(TIME_WIDTH) << ss.str();
                     }
                 }
                 catch (aoc_exception& e) {
@@ -157,16 +168,22 @@ namespace aoc {
                     if (problem.compareB) {
                         std::stringstream buffer;
                         std::stringstream error_buff;
-                        solver.solveB(buffer, input.get());
+                        auto time = solver.solveB(buffer, input.get());
                         if (equal(problem.compareB->stream, buffer.str(), error_buff)) {
                             os << "[PASSED]";
+                            std::stringstream ss;
+                            ss << "(" << time.count() << " µs)";
+                            os << std::right << std::setw(TIME_WIDTH) << ss.str();
                         } else {
                             os << "[FAILED]";
                             errors << "FAILED while solving partB: " << error_buff.rdbuf() << "\n";
                             errors_happened = true;
                         }
                     } else {
-                        solver.solveB(os, input.get());
+                        auto time = solver.solveB(os, input.get());
+                        std::stringstream ss;
+                        ss << "(" << time.count() << " µs)";
+                        os << std::right << std::setw(TIME_WIDTH) << ss.str();
                     }
                 }
                 catch (aoc_exception& e) {
