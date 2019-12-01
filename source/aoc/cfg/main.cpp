@@ -1,5 +1,6 @@
-#include "aoc/solver.h"
 #include "version.h"
+
+#include <aoc/solver.h>
 
 int main(int argc, char** argv)
 {

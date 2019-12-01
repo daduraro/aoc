@@ -1,6 +1,4 @@
 #include "aoc/solver.h"
-#include "aoc/error.h"
-#include "version.h"
 
 #include <iostream>
 #include <string>
@@ -14,74 +12,33 @@
 #include <memory>
 #include <cassert>
 
-namespace aoc
-{
-    namespace {
-        constexpr std::size_t YEAR = AOC_YEAR;
-        constexpr std::size_t DAY  = AOC_DAY;
-        using input_t = std::string;
+namespace aoc {
+namespace {
+    constexpr std::size_t YEAR = ...;
+    constexpr std::size_t DAY  = ...;
+    using input_t = ...;
 
-        auto resultA(const input_t& in) noexcept -> std::optional<std::size_t>
-        {
-            // ...
-            return std::nullopt;
-        }
-
-        auto resultB(const input_t& in) noexcept -> std::optional<std::size_t>
-        {
-            // ...
-            return std::nullopt;
-        }
-
-        void parse_input(std::istream& is, input_t& in)
-        {
-            // ...
-        }
+    input_t parse_input(std::istream& is)
+    {
+        // ...
+        return {};
     }
 
-    namespace {
-        template<typename T>
-        std::ostream& operator<<(std::ostream& os, const std::optional<T>& r) noexcept {
-            if (std::ostream::sentry s(os); s) {
-                if (r) os << r.value();
-                else   os << "N/A";
-            }
-            return os;
-        }
+    auto resultA(const input_t& in) noexcept -> std::optional<std::size_t>
+    {
+        // ...
+        return std::nullopt;
     }
+
+    auto resultB(const input_t& in) noexcept -> std::optional<std::size_t>
+    {
+        // ...
+        return std::nullopt;
+    }
+}
 
     template<>
-    void solver<YEAR, DAY>::solveA(std::ostream& os, const void* type_erased_in) const
-    {
-        const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
-        os << resultA(in);
-    }
-
-    template<>
-    void solver<YEAR, DAY>::solveB(std::ostream& os, const void* type_erased_in) const
-    {
-        const input_t& in = *reinterpret_cast<const input_t*>(type_erased_in);
-        os << resultB(in);
-    }
-
-    template<>
-    void* solver<YEAR, DAY>::parse(std::istream& is) const
-    {
-        std::istream::sentry s(is);
-        if (!s) throw parse_exception{ "invalid input stream" };
-
-        std::unique_ptr<input_t> ptr{ new input_t };
-        input_t& in = *ptr;
-
-        parse_input(is, in);
-
-        return ptr.release();
-    }
-
-    template<>
-    void solver<YEAR, DAY>::cleanup(void* ptr) const noexcept
-    {
-        if constexpr (std::is_array_v<input_t>) delete[] reinterpret_cast<input_t*>(ptr);
-        else delete reinterpret_cast<input_t*>(ptr);
+    auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
+        return create_solver<YEAR, DAY>(parse_input, resultA, resultB);
     }
 }

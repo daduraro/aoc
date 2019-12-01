@@ -18,6 +18,7 @@
 #include <type_traits>
 #include <cstdlib>
 #include <tuple>
+#include <regex>
 
 #include <ddr/math/vector.h>
 #include <ddr/math/grid.h>
@@ -37,32 +38,19 @@ namespace aoc {
         {
             input_t in;
 
-            auto expect = [](std::istream& is, char c)
-            {
-                char e;
-                if (!(is >> e)) throw parse_exception{};
-                if (e != c)  throw parse_exception{};
-            };
-
+            std::regex re{ R"re(#(\d+) @ (\d+),(\d+): (\d+)x(\d+))re" };
             std::string line;
             while (std::getline(is, line))
             {
                 if (line.empty()) continue;
-                std::stringstream line_ss{ std::move(line) };
-                auto&[id, r] = in.emplace_back();
-                expect(line_ss, '#');
-                if (!(line_ss >> id)) throw parse_exception{};
-                expect(line_ss, '@');
-                if (!(line_ss >> r.start.x)) throw parse_exception{};
-                expect(line_ss, ',');
-                if (!(line_ss >> r.start.y)) throw parse_exception{};
-                expect(line_ss, ':');
-                if (!(line_ss >> r.size.x)) throw parse_exception{};
-                expect(line_ss, 'x');
-                if (!(line_ss >> r.size.y).eof()) throw parse_exception{};
-
-                if (r.start.x < 0 || r.start.y < 0 || r.size.x < 0 || r.size.y < 0)
-                    throw parse_exception{};
+                if (std::smatch m; std::regex_match(line, m, re)) {
+                    auto&[id, r] = in.emplace_back();
+                    id = std::stoi(m[1].str());
+                    r.start.x = std::stoi(m[2].str());
+                    r.start.y = std::stoi(m[3].str());
+                    r.size.x = std::stoi(m[4].str());
+                    r.size.y = std::stoi(m[5].str());
+                } else throw parse_exception{"unexpected line format"};
             }
 
             return in;
