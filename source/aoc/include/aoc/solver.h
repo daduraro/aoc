@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <iosfwd>
 #include <chrono>
+#include <tuple>
 
 #include <aoc/serialize.h>
 #include <aoc/error.h>
