@@ -21,6 +21,8 @@ namespace ddr::math {
         friend constexpr bool operator!=(const vec2& lhs, const vec2& rhs) noexcept { return !(lhs == rhs); }
         friend constexpr vec2 operator+(const vec2& lhs, const vec2& rhs) noexcept { return { lhs.x + rhs.x, lhs.y + rhs.y }; }
         friend constexpr vec2 operator-(const vec2& lhs, const vec2& rhs) noexcept { return { lhs.x - rhs.x, lhs.y - rhs.y }; }
+        constexpr vec2& operator+=(const vec2& other) { return {x + other.x, y + other.y }; }
+        constexpr vec2& operator-=(const vec2& other) { return {x - other.x, y - other.y }; }
 
         constexpr auto begin() noexcept { return data.begin(); }
         constexpr auto end() noexcept { return data.end(); }
