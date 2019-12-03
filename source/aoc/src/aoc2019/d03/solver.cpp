@@ -13,6 +13,8 @@
 #include <cassert>
 #include <utility>
 #include <sstream>
+#include <tuple>
+#include <utility>
 
 #include <ddr/math/vector.h>
 
@@ -55,105 +57,195 @@ namespace {
                     case 'D': d = direction_t::down; break;
                     case 'L': d = direction_t::left; break;
                 }
-                curve.emplace_back(d, value);
+                if (value > 0) curve.emplace_back(d, value);
             }
         }
         return in;
     }
 
-    auto resultA(const input_t& in) noexcept -> std::optional<std::size_t>
+    using straight_t = std::tuple<ivec2, ivec2, std::size_t>; // pos, vec, pos_total_move
+
+    auto to_vec(const move_t& move) -> ivec2
     {
-        using bounds_t = std::array<std::intmax_t, 2>; // first value should always be smaller than the second
-        using straight_t = std::pair<std::intmax_t, bounds_t>;
+        auto[d, m_unsigned] = move;
+        auto m = std::intmax_t(m_unsigned);
+        switch (d) {
+            default: assert(false);
+            case direction_t::up:    return ivec2{  0,  m };
+            case direction_t::down:  return ivec2{  0, -m };
+            case direction_t::left:  return ivec2{ -m,  0 };
+            case direction_t::right: return ivec2{  m,  0 };
+        }
+    }
 
-        enum class straight_type_t {
-            vertical,
-            horizontal
-        };
+    template<bool partA>
+    auto min_cross_intersections(std::bool_constant<partA>, const straight_t& s, const std::vector<straight_t>& segments) noexcept -> std::optional<std::size_t> 
+    {
+        const auto&[p0, v0, s0] = s;
 
-        auto get_straight = [](ivec2& offset, const move_t& move) -> std::tuple<straight_type_t, straight_t>
-        {
-            auto[d, m] = move;
-            switch (d) {
-                default: assert(false);
-                case direction_t::up:    offset += ivec2{  0,  m }; return { straight_type_t::vertical,   { offset.x, { offset.y - m, offset.y } } };
-                case direction_t::down:  offset += ivec2{  0, -m }; return { straight_type_t::vertical,   { offset.x, { offset.y, offset.y + m } } };
-                case direction_t::left:  offset += ivec2{ -m,  0 }; return { straight_type_t::horizontal, { offset.y, { offset.x, offset.x + m } } };
-                case direction_t::right: offset += ivec2{  m,  0 }; return { straight_type_t::horizontal, { offset.y, { offset.x - m, offset.x } } };
+        // assume x coordinate where s projects into a line
+        std::size_t idx_x = (v0.x == 0) ? 0 : 1;
+        std::size_t idx_y = (v0.x == 0) ? 1 : 0;
+
+        // obtain relevant coordinates
+        auto x = p0[idx_x];
+        auto y0 = p0[idx_y];
+        auto y1 = p0[idx_y] + v0[idx_y];
+
+        auto y_min = std::min(y0, y1);
+        auto y_max = std::max(y0, y1);
+
+        // get candidates to intersect
+        auto it = std::lower_bound(segments.begin(), segments.end(), y_min, [idx_y](const auto& elem, const auto& value) {
+            return std::get<0>(elem)[idx_y] < value;
+        });
+        auto last = std::upper_bound(segments.begin(), segments.end(), y_max, [idx_y](const auto& value, const auto& elem) {
+            return value < std::get<0>(elem)[idx_y];
+        });
+
+        // check each intersection point
+        std::optional<std::size_t> dist;
+        for (; it != last; ++it) {
+            const auto&[p1, v1, s1] = *it;
+
+            auto y = p1[idx_y];
+            auto x0 = p1[idx_x];
+            auto x1 = p1[idx_x] + v1[idx_x];
+
+            auto x_min = std::min(x0, x1);
+            auto x_max = std::max(x0, x1);
+
+            if (x >= x_min && x <= x_max) {
+                // intersection point has coordinates x and y
+                std::size_t d;
+                if constexpr (partA) {
+                    d = std::size_t(std::abs(x) + std::abs(y));
+                } else {
+                    d = s0 + s1;
+                    ivec2 intersection_point;
+                    intersection_point[idx_x] = x;
+                    intersection_point[idx_y] = y;
+
+                    d += manh(intersection_point, p0);
+                    d += manh(intersection_point, p1);
+                }
+                if (d != 0)
+                    dist = dist ? std::min(*dist, d) : d;
             }
-        };
+        }
 
+        return dist;
+    }
+
+
+    // TODO: current implementation only handles crossing intersections and do not consider intersections
+    //       where both segments are coincident
+    // template<bool partA>
+    // auto min_parallel_intersections(std::bool_constant<partA>, const straight_t& s, const std::vector<straight_t>& lines) -> std::optional<std::size_t>
+    // {
+    //     const auto&[p0, v0, s0] = s;
+
+    //     // assume x the coordinate that does not vary
+    //     std::size_t idx_x = (v0[0] == 0) ? 0 : 1;
+    //     std::size_t idx_y = (v0[0] == 0) ? 1 : 0;
+
+    //     // obtain relevant coordinates
+    //     auto x = p0[idx_x];
+    //     auto c0_y0 = p0[idx_y];
+    //     auto c0_y1 = p0[idx_y] + v0[idx_y];
+
+    //     auto c0_ymin = std::min(c0_y0, c0_y1);
+    //     auto c0_ymax = std::max(c0_y0, c0_y1);
+
+    //     // do equal range on x
+    //     auto it   = std::lower_bound(lines.begin(), lines.end(), x, [x_idx](const auto& elem, const auto& value) { 
+    //         return std::get<0>(elem)[x_idx] < value; 
+    //     });
+    //     auto last = std::upper_bound(lines.begin(), lines.end(), x, [x_idx](const auto& value, const auto& elem) { 
+    //         return value < std::get<0>(elem)[x_idx]; 
+    //     });
+
+    //     std::optional<std::size_t> dist;
+    //     for (; it != last; ++it) {
+    //         const auto&[p1, v1, s1] = *it;
+
+    //         auto c1_y0 = p1[idx_y];
+    //         auto c1_y1 = p1[idx_y] + v1[idx_y];
+
+    //         auto c1_ymin = std::min(c1_y0, c1_y1);
+    //         auto c1_ymax = std::max(c1_y0, c1_y1);
+
+
+    //         if (c0_ymin <= c1_ymax && c1_ymin <= c0_ymax) {
+    //             // intersection occur, find all the range of intersection
+    //             auto y_inter_min = std::max(c0_ymin, c1_ymin);
+    //             auto y_inter_max = std::min(c0_ymax, c1_ymax);
+
+    //             if constexpr (partA) { // manhattan distance
+    //                 // two cases, y_inter_min * y_inter_max > 0:
+    //                 //  then the value of intersection is either y_inter_min or y_inter_max
+    //                 // y_inter_min * y_inter_max <= 0:
+    //                 //  then the value is 0 if x != 0, otherwise sign(y_inter_min) or sign(y_inter_max) (if different than 0)
+    //                 if (y_inter_min * y_inter_max > 0) {
+    //                     auto d = std::size_t(std::abs(x) + std::min(std::abs(y_inter_min), std::abs(y_inter_max)));
+    //                     dist = dist ? std::min(*dist, d) : d;
+    //                 } else if (x == 0) {
+    //                     if (y_inter_min != 0) y_inter_min /= std::abs(y_inter_min);
+    //                     if (y_inter_max != 0) y_inter_max /= std::abs(y_inter_max);
+
+    //                     auto d = std::size_t(std::max(std::abs(y_inter_min), std::abs(y_inter_max)));
+    //                     if (d != 0) dist = dist ? std::min(*dist, d) : d;
+    //                 } else {
+    //                     auto d = std::size_t(std::abs(x));
+    //                     dist = dist ? std::min(*dist, d) : d;
+    //                 }
+    //             } else {
+
+    //             }
+    //         }
+    //     }
+    //     return dist;
+    // }
+
+    template<bool partA>
+    auto result(const input_t& in) noexcept -> std::optional<std::size_t>
+    {
         // divide first curve into vertical and horizontal segments
         std::vector<straight_t> vsegments; vsegments.reserve(in[0].size() / 2);
         std::vector<straight_t> hsegments; hsegments.reserve(in[0].size() / 2);
         {
+            std::size_t total_dist = 0;
             ivec2 pos = { 0, 0 };
             for (const auto& m : in[0]) {
-                auto[t, s] = get_straight(pos, m);
-                switch (t) {
-                    default: assert(false);
-                    case straight_type_t::horizontal: hsegments.emplace_back(std::move(s)); break;
-                    case straight_type_t::vertical:   vsegments.emplace_back(std::move(s)); break;
-                }
+                auto vec = to_vec(m);
+                if (vec.x != 0) hsegments.emplace_back(pos, vec, total_dist);
+                else vsegments.emplace_back(pos, vec, total_dist);
+
+                pos += vec;
+                total_dist += std::abs(vec.x) + std::abs(vec.y);
             }
-            std::sort(vsegments.begin(), vsegments.end(), [](const auto& lhs, const auto& rhs) { return std::get<0>(lhs) < std::get<0>(rhs); });
-            std::sort(hsegments.begin(), hsegments.end(), [](const auto& lhs, const auto& rhs) { return std::get<0>(lhs) < std::get<0>(rhs); });
+            std::sort(vsegments.begin(), vsegments.end(), [](const straight_t& lhs, const straight_t& rhs) { return std::get<0>(lhs).x < std::get<0>(rhs).x; });
+            std::sort(hsegments.begin(), hsegments.end(), [](const straight_t& lhs, const straight_t& rhs) { return std::get<0>(lhs).y < std::get<0>(rhs).y; });
         }
 
-        auto min_cross_intersections = [](const straight_t& s, const std::vector<straight_t>& lines) -> std::optional<std::size_t>
-        {
-            std::optional<std::size_t> dist;
-
-            const auto&[x, ys] = s;
-            const auto&[y0, y1] = ys;
-
-            auto it   = std::lower_bound(lines.begin(), lines.end(), y0, [](const auto& elem, const auto& value) { return std::get<0>(elem) < value; } );
-            auto last = std::upper_bound(lines.begin(), lines.end(), y1, [](const auto& elem, const auto& value) { return std::get<0>(elem) < value; } );
-
-            for (; it != last; ++it) {
-                if (x >= it->second[0] && x <= it->second[1]) {
-                    // intersection occur
-                    std::size_t d = std::size_t(std::abs(it->first) + std::abs(x));
-                    if (d != 0)
-                        dist = std::min(dist.value_or(std::numeric_limits<std::size_t>::max()), d);
-                }
-            }
-            return dist;
-        };
-
-        auto min_parallel_intersections = [](const straight_t& s, const std::vector<straight_t>& lines) -> std::optional<std::size_t>
-        {
-            std::optional<std::size_t> dist;
-
-            const auto&[x, ys] = s;
-            const auto&[y0, y1] = ys;
-
-            auto it   = std::lower_bound(lines.begin(), lines.end(), y0, [](const auto& elem, const auto& value) { return std::get<0>(elem) < value; } );
-            auto last = std::upper_bound(lines.begin(), lines.end(), y1, [](const auto& elem, const auto& value) { return std::get<0>(elem) < value; } );
-
-            for (; it != last; ++it) {
-                if (x >= it->second[0] && x <= it->second[1]) {
-                    // intersection occur
-                    std::size_t d = std::size_t(std::abs(it->first) + std::abs(x));
-                    if (d != 0)
-                        dist = std::min(dist.value_or(std::numeric_limits<std::size_t>::max()), d);
-                }
-            }
-            return dist;
-        };
-
-        return std::nullopt;
-    }
-
-    auto resultB(const input_t& in) noexcept -> std::optional<std::size_t>
-    {
-        // ...
-        return std::nullopt;
+        std::optional<std::size_t> dist;
+        ivec2 pos = { 0, 0 };
+        std::size_t total_dist = 0;
+        for (const auto& m : in[1]) {
+            auto vec = to_vec(m);
+            straight_t s{pos, vec, total_dist};
+            const auto* cross = (vec.x == 0) ? &hsegments : &vsegments;
+            if (auto d = min_cross_intersections(std::bool_constant<partA>{}, s, *cross); d)
+                dist = dist ? std::min(*dist, *d) : *d;
+            pos += vec;
+            total_dist += std::abs(vec.x) + std::abs(vec.y);
+        }
+        return dist;
     }
 }
 
     template<>
     auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
-        return create_solver<YEAR, DAY>(parse_input, resultA, resultB);
+        return create_solver<YEAR, DAY>(parse_input, result<true>, result<false>);
     }
 }
