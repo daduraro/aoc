@@ -1,6 +1,7 @@
 #include "aoc/solver.h"
 
 #include <iostream>
+#include <regex>
 #include <string>
 #include <vector>
 #include <array>
@@ -12,8 +13,9 @@
 #include <memory>
 #include <cassert>
 
-namespace aoc {
 namespace {
+    using namespace aoc;
+    
     constexpr std::size_t YEAR = ...;
     constexpr std::size_t DAY  = ...;
     using input_t = ...;
@@ -37,6 +39,7 @@ namespace {
     }
 }
 
+namespace aoc {
     template<>
     auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
         return create_solver<YEAR, DAY>(parse_input, resultA, resultB);
