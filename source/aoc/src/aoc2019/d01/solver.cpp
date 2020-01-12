@@ -12,8 +12,8 @@
 #include <memory>
 #include <cassert>
 
-namespace aoc{
 namespace {
+    using namespace aoc;
     constexpr std::size_t YEAR = 2019;
     constexpr std::size_t DAY  = 1;
     using input_t = std::vector<std::size_t>;
@@ -48,6 +48,7 @@ namespace {
     }
 }
 
+namespace aoc {
     template<>
     auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
         return create_solver<YEAR, DAY>(parse_input, resultA, resultB);

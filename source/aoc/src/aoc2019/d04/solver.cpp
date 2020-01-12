@@ -16,7 +16,6 @@
 
 namespace {
     using namespace aoc;
-
     constexpr std::size_t YEAR = 2019;
     constexpr std::size_t DAY  = 4;
     using input_t = std::pair<std::uintmax_t, std::uintmax_t>;
@@ -109,6 +108,8 @@ namespace {
     }
 
 
+    // TODO: current solution is brute-force, there must be more efficient ways
+    //       to make a solution based on the number of digits...
 
     // constexpr std::size_t total_non_decreasing(std::uint8_t base, std::uint8_t digits) noexcept
     // {

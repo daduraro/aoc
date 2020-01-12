@@ -13,8 +13,8 @@
 #include <bitset>
 #include <regex>
 
-namespace aoc {
 namespace {
+    using namespace aoc;
     constexpr std::size_t YEAR = 2018;
     constexpr std::size_t DAY  = 7;
 
@@ -169,6 +169,8 @@ namespace {
                 }
             }
         }
+
+        return in;
     }
 
     std::string resultA(const input_t& in) noexcept {
@@ -188,7 +190,7 @@ namespace {
         return str;
     }
 
-    std::size_t resultB(const input_t& in, std::size_t nworkers = 5) noexcept {
+    std::size_t param_resultB(const input_t& in, std::size_t nworkers) noexcept {
         std::size_t elapsed_time = 0;
         tasks_t tasks{ in.vertices };
         worker_pool_t workers{ nworkers };
@@ -202,8 +204,13 @@ namespace {
 
         return elapsed_time;
     }
+
+    std::size_t resultB(const input_t& in) noexcept {
+        return param_resultB(in, 5);
+    }
 }
 
+namespace aoc {
     template<>
     auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
         return create_solver<YEAR, DAY>(parse_input, resultA, resultB);

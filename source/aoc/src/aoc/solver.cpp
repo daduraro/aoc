@@ -120,7 +120,7 @@ namespace aoc {
                     auto[ptr, time] = solver.parse(problem.input.stream);
                     input.reset(ptr);
                     std::stringstream ss;
-                    ss << "(" << time.count() << " µs)";
+                    ss << "(" << time.count() << " us)";
                     os << "parse: " << std::right << std::setw(TIME_WIDTH) << ss.str();
                 }
                 catch (aoc_exception&) {
@@ -141,7 +141,7 @@ namespace aoc {
                         if (equal(problem.compareA->stream, buffer.str(), error_buff)) {
                             os << "[PASSED]";
                             std::stringstream ss;
-                            ss << "(" << time.count() << " µs)";
+                            ss << "(" << time.count() << " us)";
                             os << std::right << std::setw(TIME_WIDTH) << ss.str();
                         } else {
                             os << "[FAILED]";
@@ -151,7 +151,7 @@ namespace aoc {
                     } else {
                         auto time = solver.solveA(os, input.get());
                         std::stringstream ss;
-                        ss << "(" << time.count() << " µs)";
+                        ss << "(" << time.count() << " us)";
                         os << std::right << std::setw(TIME_WIDTH) << ss.str();
                     }
                 }
@@ -172,7 +172,7 @@ namespace aoc {
                         if (equal(problem.compareB->stream, buffer.str(), error_buff)) {
                             os << "[PASSED]";
                             std::stringstream ss;
-                            ss << "(" << time.count() << " µs)";
+                            ss << "(" << time.count() << " us)";
                             os << std::right << std::setw(TIME_WIDTH) << ss.str();
                         } else {
                             os << "[FAILED]";
@@ -182,7 +182,7 @@ namespace aoc {
                     } else {
                         auto time = solver.solveB(os, input.get());
                         std::stringstream ss;
-                        ss << "(" << time.count() << " µs)";
+                        ss << "(" << time.count() << " us)";
                         os << std::right << std::setw(TIME_WIDTH) << ss.str();
                     }
                 }

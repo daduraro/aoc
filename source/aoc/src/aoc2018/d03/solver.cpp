@@ -24,8 +24,8 @@
 #include <ddr/math/grid.h>
 #include <ddr/math/hyperbox.h>
 
-namespace aoc {
 namespace {
+    using namespace aoc;
     constexpr std::size_t YEAR = 2018;
     constexpr std::size_t  DAY = 3;
 
@@ -109,6 +109,7 @@ namespace {
     }
 }
 
+namespace aoc {
     template<>
     auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
         return create_solver<YEAR, DAY>(parse_input, resultA, resultB);

@@ -1,8 +1,0 @@
-#ifndef INCLUDE_GUARD__TEST_UNITTEST_H__GUID_2dfbc28e_bb53_47b9_a144_7ffc41755cc2
-#define INCLUDE_GUARD__TEST_UNITTEST_H__GUID_2dfbc28e_bb53_47b9_a144_7ffc41755cc2
-
-#include <gtest/gtest.h>
-
-namespace test {}
-
-#endif // INCLUDE_GUARD__TEST_UNITTEST_H__GUID_2dfbc28e_bb53_47b9_a144_7ffc41755cc2

@@ -18,8 +18,8 @@
 
 #include <ddr/math/vector.h>
 
-namespace aoc {
 namespace {
+    using namespace aoc;
     constexpr std::size_t YEAR = 2019;
     constexpr std::size_t DAY  = 3;
 
@@ -79,7 +79,7 @@ namespace {
     }
 
     template<bool partA>
-    auto min_cross_intersections(std::bool_constant<partA>, const straight_t& s, const std::vector<straight_t>& segments) noexcept -> std::optional<std::size_t> 
+    auto min_cross_intersections(std::bool_constant<partA>, const straight_t& s, const std::vector<straight_t>& segments) noexcept -> std::optional<std::size_t>
     {
         const auto&[p0, v0, s0] = s;
 
@@ -158,11 +158,11 @@ namespace {
     //     auto c0_ymax = std::max(c0_y0, c0_y1);
 
     //     // do equal range on x
-    //     auto it   = std::lower_bound(lines.begin(), lines.end(), x, [x_idx](const auto& elem, const auto& value) { 
-    //         return std::get<0>(elem)[x_idx] < value; 
+    //     auto it   = std::lower_bound(lines.begin(), lines.end(), x, [x_idx](const auto& elem, const auto& value) {
+    //         return std::get<0>(elem)[x_idx] < value;
     //     });
-    //     auto last = std::upper_bound(lines.begin(), lines.end(), x, [x_idx](const auto& value, const auto& elem) { 
-    //         return value < std::get<0>(elem)[x_idx]; 
+    //     auto last = std::upper_bound(lines.begin(), lines.end(), x, [x_idx](const auto& value, const auto& elem) {
+    //         return value < std::get<0>(elem)[x_idx];
     //     });
 
     //     std::optional<std::size_t> dist;
@@ -244,6 +244,7 @@ namespace {
     }
 }
 
+namespace aoc {
     template<>
     auto create_solver<YEAR, DAY>() noexcept -> std::unique_ptr<solver_interface> {
         return create_solver<YEAR, DAY>(parse_input, result<true>, result<false>);
